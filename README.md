@@ -7,7 +7,7 @@ and other rebadges on the same `ycc` platform). Gives you native Home Assistant
 **monitoring** (power, current, voltage, session energy, temperature, status)
 and **control** (set charging current, start/stop) — locally, over MQTT.
 
-> Status: early (0.1.0). Working protocol, functional entities. See Roadmap.
+> Status: 0.1.0 - Local mode verified working on real hardware (live telemetry + control). See Roadmap.
 
 ## How it works
 
@@ -76,6 +76,8 @@ Charger  ──MQTT(1883)──►  your broker (Mosquitto)  ◄──►  Home 
 ## Install
 
 ### Via HACS (custom repository)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=mbriney&repository=ha-evdance&category=integration)
+
 1. HACS → ⋮ → **Custom repositories** → add `https://github.com/mbriney/ha-evdance`, category **Integration**.
 2. Install **EVDANCE EV Charger**, then restart Home Assistant.
 
