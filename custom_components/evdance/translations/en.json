@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "pick": {
+        "title": "EVDANCE EV Charger",
+        "description": "Chargers found on your MQTT broker. Pick one to add.",
+        "data": { "serial": "Charger" }
+      },
+      "manual": {
+        "title": "EVDANCE EV Charger",
+        "description": "No charger was heard on the broker yet. Enter the serial number (on the unit, or in the EVDANCE app under About Charger). Make sure the charger is pointed at this broker first.",
+        "data": { "serial": "Serial number", "model": "Model" }
+      }
+    },
+    "abort": {
+      "already_configured": "This charger is already configured.",
+      "mqtt_required": "Set up the MQTT integration first — EVDANCE talks to Home Assistant through it."
+    }
+  }
+}
