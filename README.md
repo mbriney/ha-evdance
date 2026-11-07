@@ -46,9 +46,17 @@ Charger  ──MQTT(1883)──►  your broker (Mosquitto)  ◄──►  Home 
    resolves to your broker's IP:
    - UniFi / pfSense / AdGuard / Pi-hole: add an A record
      `mqtt.evdances.com → <your-broker-IP>`.
-   - Your broker must accept the charger's connection. Simplest on a trusted
-     LAN: `allow_anonymous true`. (The charger logs in with client-id = its
-     serial, username `yccsmart`, and a per-device password.)
+   - Your broker must accept the charger's login. It connects with client-id =
+     its serial, username `yccsmart`, and a **per-device password**. The Home
+     Assistant Mosquitto add-on has no anonymous mode, so add a matching login
+     in the add-on config:
+     ```yaml
+     logins:
+       - username: yccsmart
+         password: <the charger's password>
+     ```
+     Get the password automatically with `scripts/capture_credentials.py` (see
+     Credentials) - no packet capture needed.
    - Reboot the charger (breaker or unplug 10s) so it reconnects to your broker.
 3. *(Optional)* **Keep the EVDANCE app working** by bridging your broker up to
    the real cloud. In `mosquitto.conf`:
@@ -116,14 +124,28 @@ Base topic: `ycc/<model>/<serial>` (e.g. `ycc/ACT4002UA2/ACT4002UA2…`).
 
 ## Credentials
 
-**Local mode needs no secrets** — only the serial, auto-discovered.
+The HA integration needs no secrets to *run*. But because the Mosquitto add-on
+has no anonymous mode, the **broker** needs the charger's MQTT username/password
+so the charger can log in (local mode), and **cloud mode** needs them too.
 
-**Cloud mode** needs the charger's MQTT username and password. These are sent in
-the charger's MQTT CONNECT the first time it connects to a broker. The reliable
-way to read them today is an on-network packet capture of the charger
-(`tcpdump -A host <charger-ip> and tcp port 1883` on your gateway, then power-
-cycle the charger). A future release aims to fetch them automatically from the
-EVDANCE account API (see Roadmap).
+### Easiest: capture them automatically
+```bash
+# on a host the charger can reach, with nothing else on port 1883:
+sudo python3 scripts/capture_credentials.py
+```
+Point `mqtt.evdances.com` at that host in your local DNS, reboot the charger,
+and the script prints the client-id / username / password from the charger's
+MQTT CONNECT. No tcpdump, no gateway access. Then put them in Mosquitto `logins:`
+and repoint DNS at your real broker.
+
+### Alternative: packet capture
+On a box in the charger's path (e.g. your gateway):
+`tcpdump -A host <charger-ip> and tcp port 1883`, then power-cycle the charger
+and read the credentials out of the CONNECT.
+
+A future release aims to fetch them from the EVDANCE account API automatically
+(see Roadmap).
+
 
 ## Roadmap
 
