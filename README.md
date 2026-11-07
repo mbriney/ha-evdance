@@ -25,6 +25,18 @@ Charger  ──MQTT(1883)──►  your broker (Mosquitto)  ◄──►  Home 
                                       so the EVDANCE app keeps working
 ```
 
+## Modes
+
+- **Local (default, recommended).** The charger publishes to *your* MQTT broker
+  and HA reads/writes locally. No charger credentials needed — the serial is
+  auto-discovered. Requires the one-time DNS redirect (below).
+- **Cloud (experimental).** HA connects straight to the EVDANCE cloud broker
+  with its own MQTT client, using credentials you supply. No DNS redirect or
+  local broker needed, but it depends on the vendor cloud and is **untested
+  against the live broker** (client-id/ACL behaviour unknown). You must obtain
+  the charger's MQTT username/password from an on-network capture of its first
+  connection (see Credentials).
+
 ## Prerequisites
 
 1. **An MQTT broker** that Home Assistant uses (e.g. the Mosquitto add-on), and
@@ -64,21 +76,18 @@ Copy `custom_components/evdance/` into your HA `config/custom_components/` and r
 
 ## Configure
 
-Settings → Devices & Services → **Add Integration** → *EVDANCE EV Charger*.
+Settings → Devices & Services → **Add Integration** → *EVDANCE EV Charger*, then
+pick a mode:
 
+### Local (default)
 The integration **listens on your broker for a few seconds and auto-discovers**
 any charger already reporting — just pick it from the list. Nothing to type, no
-credentials, no packet capture. (If none is heard yet, you can enter the serial
-by hand; it's on the unit and in the app under *About Charger*.)
+credentials, no packet capture. (If none is heard yet, enter the serial by hand;
+it's on the unit and in the app under *About Charger*.)
 
-### Helper: see what's on your broker
-Not sure the charger is reporting yet? Run the bundled script:
-
-```bash
-pip install paho-mqtt
-python3 scripts/discover.py --host <your-broker-IP>
-```
-It prints each charger's model, serial, and live status as it arrives.
+### Cloud (experimental)
+Enter the serial, model, broker host (`mqtt.evdances.com`), port (`1883`), and
+the charger's MQTT **username/password**. See Credentials for how to get those.
 
 ## Entities
 
@@ -105,12 +114,16 @@ Base topic: `ycc/<model>/<serial>` (e.g. `ycc/ACT4002UA2/ACT4002UA2…`).
   - set amps: `{"current":32}`
   - start: `{"on_off":1}`  · stop: `{"on_off":2}`
 
-## Credentials & the "easy install" question
+## Credentials
 
-For this **local** integration you need **no secrets** — only the serial, which
-is auto-discovered. The per-device cloud password matters only for the optional
-cloud *bridge*, and it's read straight off the charger's MQTT CONNECT the first
-time it connects to your broker (watch the broker log, or `scripts/discover.py`).
+**Local mode needs no secrets** — only the serial, auto-discovered.
+
+**Cloud mode** needs the charger's MQTT username and password. These are sent in
+the charger's MQTT CONNECT the first time it connects to a broker. The reliable
+way to read them today is an on-network packet capture of the charger
+(`tcpdump -A host <charger-ip> and tcp port 1883` on your gateway, then power-
+cycle the charger). A future release aims to fetch them automatically from the
+EVDANCE account API (see Roadmap).
 
 ## Roadmap
 

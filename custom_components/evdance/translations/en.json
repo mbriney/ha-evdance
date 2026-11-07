@@ -1,20 +1,40 @@
 {
   "config": {
     "step": {
-      "pick": {
+      "user": {
         "title": "EVDANCE EV Charger",
+        "description": "Choose how Home Assistant should reach your charger.",
+        "menu_options": {
+          "local": "Local — via your MQTT broker (recommended)",
+          "cloud": "Cloud — direct to EVDANCE (experimental)"
+        }
+      },
+      "pick": {
+        "title": "EVDANCE — Local",
         "description": "Chargers found on your MQTT broker. Pick one to add.",
         "data": { "serial": "Charger" }
       },
       "manual": {
-        "title": "EVDANCE EV Charger",
+        "title": "EVDANCE — Local",
         "description": "No charger was heard on the broker yet. Enter the serial number (on the unit, or in the EVDANCE app under About Charger). Make sure the charger is pointed at this broker first.",
         "data": { "serial": "Serial number", "model": "Model" }
+      },
+      "cloud": {
+        "title": "EVDANCE — Cloud (experimental)",
+        "description": "Connect directly to the EVDANCE cloud broker. You need the charger's MQTT credentials (from an on-network capture of the charger's first connection). Untested against the live cloud — local mode is recommended.",
+        "data": {
+          "serial": "Serial number",
+          "model": "Model",
+          "host": "Broker host",
+          "port": "Broker port",
+          "username": "MQTT username",
+          "password": "MQTT password"
+        }
       }
     },
     "abort": {
       "already_configured": "This charger is already configured.",
-      "mqtt_required": "Set up the MQTT integration first — EVDANCE talks to Home Assistant through it."
+      "mqtt_required": "Set up the MQTT integration first — EVDANCE local mode talks to Home Assistant through it."
     }
   }
 }

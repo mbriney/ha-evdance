@@ -3,10 +3,24 @@ from __future__ import annotations
 
 DOMAIN = "evdance"
 
+# config keys
+CONF_MODE = "mode"
 CONF_SERIAL = "serial"
 CONF_MODEL = "model"
+CONF_HOST = "host"
+CONF_PORT = "port"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"
 
+# modes
+MODE_LOCAL = "local"
+MODE_CLOUD = "cloud"
+
+# defaults
 DEFAULT_MODEL = "ACT4002UA2"
+DEFAULT_HOST = "mqtt.evdances.com"
+DEFAULT_PORT = 1883
+DEFAULT_USERNAME = "yccsmart"
 MANUFACTURER = "EVDANCE"
 
 MIN_CURRENT = 6

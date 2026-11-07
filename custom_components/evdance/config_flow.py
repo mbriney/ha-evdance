@@ -1,9 +1,9 @@
-"""Config flow for EVDANCE.
+"""Config flow for EVDANCE — choose Local (default) or Cloud.
 
-Zero-touch: listens on the MQTT broker for any charger already reporting and
-offers it. Falls back to entering a serial by hand. No cloud login, no packet
-capture, no secrets — the charger just needs to publish to the broker HA uses
-(see README).
+Local  : zero-touch. Listens on your HA MQTT broker and auto-discovers any
+         charger already reporting. No credentials, no capture.
+Cloud  : experimental. Connects straight to the EVDANCE cloud broker using
+         credentials you supply.
 """
 from __future__ import annotations
 
@@ -15,7 +15,22 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.core import callback
 
-from .const import CONF_MODEL, CONF_SERIAL, DEFAULT_MODEL, DOMAIN
+from .const import (
+    CONF_HOST,
+    CONF_MODE,
+    CONF_MODEL,
+    CONF_PASSWORD,
+    CONF_PORT,
+    CONF_SERIAL,
+    CONF_USERNAME,
+    DEFAULT_HOST,
+    DEFAULT_MODEL,
+    DEFAULT_PORT,
+    DEFAULT_USERNAME,
+    DOMAIN,
+    MODE_CLOUD,
+    MODE_LOCAL,
+)
 
 DISCOVERY_TOPIC = "ycc/+/+/property/post"
 DISCOVERY_SECONDS = 6
@@ -30,9 +45,15 @@ class EvdanceConfigFlow(ConfigFlow, domain=DOMAIN):
         self._found: dict[str, str] = {}  # serial -> model
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        # Local listed first = the default choice.
+        return self.async_show_menu(
+            step_id="user", menu_options=[MODE_LOCAL, MODE_CLOUD]
+        )
+
+    # ---- Local -----------------------------------------------------------
+    async def async_step_local(self, user_input=None) -> ConfigFlowResult:
         if not await _mqtt_available(self.hass):
             return self.async_abort(reason="mqtt_required")
-
         await self._discover()
         if self._found:
             return await self.async_step_pick()
@@ -59,7 +80,9 @@ class EvdanceConfigFlow(ConfigFlow, domain=DOMAIN):
             serial = user_input[CONF_SERIAL]
             if serial == "__manual__":
                 return await self.async_step_manual()
-            return await self._create(serial, self._found.get(serial, DEFAULT_MODEL))
+            return await self._create_local(
+                serial, self._found.get(serial, DEFAULT_MODEL)
+            )
 
         options = {s: f"{m} ({s})" for s, m in self._found.items()}
         options["__manual__"] = "Enter manually…"
@@ -70,7 +93,7 @@ class EvdanceConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_manual(self, user_input=None) -> ConfigFlowResult:
         if user_input is not None:
-            return await self._create(
+            return await self._create_local(
                 user_input[CONF_SERIAL].strip(), user_input[CONF_MODEL].strip()
             )
         return self.async_show_form(
@@ -83,12 +106,44 @@ class EvdanceConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
         )
 
-    async def _create(self, serial: str, model: str) -> ConfigFlowResult:
+    async def _create_local(self, serial: str, model: str) -> ConfigFlowResult:
         await self.async_set_unique_id(serial)
         self._abort_if_unique_id_configured()
         return self.async_create_entry(
             title=f"EVDANCE {serial}",
-            data={CONF_SERIAL: serial, CONF_MODEL: model},
+            data={CONF_MODE: MODE_LOCAL, CONF_SERIAL: serial, CONF_MODEL: model},
+        )
+
+    # ---- Cloud (experimental) -------------------------------------------
+    async def async_step_cloud(self, user_input=None) -> ConfigFlowResult:
+        if user_input is not None:
+            serial = user_input[CONF_SERIAL].strip()
+            await self.async_set_unique_id(serial)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=f"EVDANCE {serial} (cloud)",
+                data={
+                    CONF_MODE: MODE_CLOUD,
+                    CONF_SERIAL: serial,
+                    CONF_MODEL: user_input[CONF_MODEL].strip(),
+                    CONF_HOST: user_input[CONF_HOST].strip(),
+                    CONF_PORT: user_input[CONF_PORT],
+                    CONF_USERNAME: user_input[CONF_USERNAME].strip(),
+                    CONF_PASSWORD: user_input[CONF_PASSWORD],
+                },
+            )
+        return self.async_show_form(
+            step_id="cloud",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_SERIAL): str,
+                    vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
+                    vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
+                    vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+                    vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
         )
 
 
