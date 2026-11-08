@@ -58,8 +58,20 @@ Charger  ──MQTT(1883)──►  your broker (Mosquitto)  ◄──►  Home 
      Get the password automatically with `scripts/capture_credentials.py` (see
      Credentials) - no packet capture needed.
    - Reboot the charger (breaker or unplug 10s) so it reconnects to your broker.
-3. *(Optional)* **Keep the EVDANCE app working** by bridging your broker up to
+
+   > ⚠️ **The EVDANCE app will not work on this network.** The DNS override
+   > redirects *every* device on your LAN that resolves `mqtt.evdances.com` —
+   > including phones running the EVDANCE app. The app appears to connect over
+   > encrypted MQTT (TLS), and a local Mosquitto broker normally offers no TLS
+   > listener, so the app can't connect at all and shows the charger offline.
+   > (Verified Nov 2026: with the override in place, the app made no
+   > connection attempt to the local broker, and it works on cellular where it
+   > reaches the real cloud.) Workarounds: set the phone's Wi-Fi DNS manually
+   > to a public resolver (e.g. 1.1.1.1 / 8.8.8.8), or scope the redirect to
+   > the charger only.
+3. *(Optional)* **Keep the vendor cloud fed** by bridging your broker up to
    the real cloud. In `mosquitto.conf`:
+
    ```conf
    connection evdance-cloud
    address 49.51.243.232:1883       # the real broker, by IP (avoids a DNS loop)
@@ -67,8 +79,17 @@ Charger  ──MQTT(1883)──►  your broker (Mosquitto)  ◄──►  Home 
    remote_clientid <charger-serial>
    remote_username yccsmart
    remote_password <per-device-password>
-   topic # both 0 "" ""
+   topic ycc/+/<charger-serial>/# both 0 "" ""
+   notifications false
    ```
+
+   This keeps your charger data flowing to the vendor cloud (cloud OTA stays
+   available, and the app works when you're off your home network). It does
+   **not** make the app work on your home Wi-Fi — see the warning in step 2.
+   Scope the bridge to your charger's topics: a broad `topic #` subscription
+   is refused by the cloud, and the bridge's startup notification publish is
+   refused too.
+
    Without the bridge, HA control still works fully; only the phone app and
    cloud OTA stop. (If you skip the bridge, add an HA automation to answer the
    charger's `ycc/<model>/<serial>/ntp/get` so its clock stays set.)
